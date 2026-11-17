@@ -84,3 +84,13 @@ class TestNieuweFuncties(unittest.TestCase):
     def test_scam_zoeken(self):
         r = bot.zoek("is deze discord cursus een scam?")
         self.assertEqual(r[0]["titel"], kennis.ONDERWERPEN["scams"]["titel"])
+
+
+class TestExport(unittest.TestCase):
+    def test_markdown(self):
+        md = bot.markdown_export()
+        self.assertIn("**A. Begrijp het model**", md)
+        self.assertIn("**N. Opschalen**", md)
+        for o in kennis.ONDERWERPEN.values():
+            self.assertIn(f"## {o['titel']}", md)
+        self.assertNotIn("{streamer}", md)

@@ -163,6 +163,24 @@ def bronnen_tekst() -> str:
             + "\n".join(f"- {b}" for b in kennis.BRONNEN))
 
 
+def markdown_export() -> str:
+    """Het complete stappenplan + alle kennis als Markdown-document."""
+    d = ["# Geld verdienen met GTA-clipping: stappenplan A-Z", "",
+         f"_Gegenereerd door ClipBot uit de kennisbank (onderzoek {kennis.LAATST_BIJGEWERKT}). "
+         "Tarieven en voorwaarden veranderen; de live campagnepagina is leidend._", "",
+         "## Stappenplan", ""]
+    for i, (titel, uitleg) in enumerate(kennis.STAPPENPLAN):
+        d.append(f"**{chr(65 + i)}. {titel}**  ")
+        d.append(f"{uitleg}")
+        d.append("")
+    d += ["## Dagelijkse checklist", ""] + [f"- [ ] {c}" for c in kennis.DAGELIJKSE_CHECKLIST] + [""]
+    for o in kennis.ONDERWERPEN.values():
+        d += [f"## {o['titel']}", "", "```text", o["tekst"], "```", ""]
+    d += ["## Hook-ideeën", ""] + [f"- {h.format(streamer='<streamer>')}" for h in kennis.HOOK_SJABLONEN] + [""]
+    d += ["## Bronnen", ""] + [f"- <{b}>" for b in kennis.BRONNEN] + [""]
+    return "\n".join(d)
+
+
 # ---------------------------------------------------------------- AI-modus
 
 def ai_chat(invoer=input, uitvoer=print) -> None:
@@ -333,6 +351,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--hooks", metavar="STREAMER", help="hook- en caption-ideeën voor een streamer")
     p.add_argument("--campagne", nargs=4, type=float, metavar=("CPM", "BUDGET", "CLIPPERS", "GOEDKEURING"),
                    help="beoordeel een campagne")
+    p.add_argument("--export", metavar="BESTAND", help="schrijf stappenplan + kennis naar een Markdown-bestand")
     a = p.parse_args(argv)
     if a.vraag:
         print(beantwoord(a.vraag))
@@ -342,6 +361,10 @@ def main(argv: list[str] | None = None) -> int:
         print(checklist_tekst())
     elif a.calc:
         print(calculator_tekst(*a.calc))
+    elif a.export:
+        with open(a.export, "w", encoding="utf-8") as f:
+            f.write(markdown_export())
+        print(f"Geschreven: {a.export}")
     elif a.hooks:
         print(hooks_en_caption(a.hooks))
     elif a.campagne:

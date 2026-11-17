@@ -31,6 +31,7 @@ python -m clipbot --calc 5000 3 1.5     # views/clip, clips/dag, $ per 1000 view
 python -m clipbot --checklist
 python -m clipbot --hooks "Lysium"      # hook- en caption-ideeën
 python -m clipbot --campagne 2 8000 50 65   # CPM, budget, clippers, goedkeuring%
+python -m clipbot --export STAPPENPLAN.md   # alles als leesbaar document
 ```
 
 ### AI-modus (Claude)
@@ -48,9 +49,11 @@ python -m clipbot.web                   # bouwt web/clipbot.html uit de kennisba
 ```
 Open `web/clipbot.html` in je browser. Afgevinkte stappen worden in je browser bewaard.
 
+Het complete stappenplan staat ook als document in [`STAPPENPLAN.md`](STAPPENPLAN.md).
+
 ## Kennisbank bijwerken
 Alle kennis staat in `clipbot/kennis.py`. Tarieven en voorwaarden veranderen
-vaak. Pas daar de tekst aan en draai daarna `python -m clipbot.web` opnieuw.
+vaak. Pas daar de tekst aan en draai daarna `python -m clipbot.web` en `python -m clipbot --export STAPPENPLAN.md` opnieuw.
 
 ## Testen
 ```bash
