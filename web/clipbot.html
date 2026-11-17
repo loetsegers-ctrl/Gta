@@ -1,0 +1,275 @@
+<title>ClipBot GTA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: één kolom als een montagetijdlijn; tabs = clips op een strip, content = het 'preview'-venster */
+:root {
+  --bg: #f3f4f7;
+  --surface: #ffffff;
+  --fg: #16181f;
+  --muted: #5b6070;
+  --line: #dcdfe7;
+  --accent: #e0452b;      /* 'record'-rood */
+  --accent-fg: #ffffff;
+  --accent-soft: #fde6e1;
+  --ok: #1f8a4c;
+  --code-bg: #eceef3;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111318; --surface: #1a1d24; --fg: #eceef3; --muted: #9aa0b0; --line: #2c303b;
+    --accent: #ff6a4f; --accent-fg: #1a0e0b; --accent-soft: #3a1f1a; --ok: #4cc983; --code-bg: #232731;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111318; --surface: #1a1d24; --fg: #eceef3; --muted: #9aa0b0; --line: #2c303b;
+  --accent: #ff6a4f; --accent-fg: #1a0e0b; --accent-soft: #3a1f1a; --ok: #4cc983; --code-bg: #232731;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 24px 48px;
+}
+.wrap { max-width: 760px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: grid; gap: 6px; }
+.rec { display: inline-flex; align-items: center; gap: 8px; font: 600 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.rec::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
+@media (prefers-reduced-motion: no-preference) { .rec::before { animation: blink 1.6s steps(2, start) infinite; } }
+@keyframes blink { to { visibility: hidden; } }
+h1 { font: 800 clamp(30px, 7vw, 46px)/1.05 var(--display); margin: 0; letter-spacing: -.02em; text-wrap: balance; }
+.sub { color: var(--muted); margin: 0; max-width: 62ch; }
+.formula { font: 400 13px/1.4 var(--mono); color: var(--muted); }
+.formula b { color: var(--fg); font-weight: 600; }
+
+nav { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; border-bottom: 1px solid var(--line); }
+nav button {
+  flex: 0 0 auto; font: 600 14px/1 var(--body); color: var(--muted); background: none; border: 0;
+  padding: 10px 12px; border-bottom: 3px solid transparent; cursor: pointer; margin-bottom: -5px;
+}
+nav button[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--accent); }
+nav button:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+section { display: grid; gap: 14px; min-width: 0; }
+h2 { font: 800 22px/1.2 var(--display); margin: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; min-width: 0; }
+pre { white-space: pre-wrap; font: 400 13.5px/1.6 var(--mono); margin: 0; overflow-x: auto; overflow-wrap: anywhere; }
+
+/* Stappenplan als tijdlijn met tijdcodes */
+ol.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+ol.steps li { display: grid; grid-template-columns: 34px 1fr; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+ol.steps li:first-child { border-top: 0; }
+.letter { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 6px; border: 2px solid var(--line); font: 800 15px/1 var(--display); cursor: pointer; background: none; color: var(--fg); }
+li.done .letter { background: var(--ok); border-color: var(--ok); color: var(--surface); }
+li.done .stitle { text-decoration: line-through; color: var(--muted); }
+.stitle { font-weight: 600; margin: 4px 0 2px; }
+.sbody { color: var(--muted); margin: 0; overflow-wrap: anywhere; }
+.progress { font: 600 13px/1 var(--mono); color: var(--muted); }
+.bar { height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--ok); width: 0; transition: width .25s; }
+
+details { border-top: 1px solid var(--line); padding: 10px 0; }
+details:first-of-type { border-top: 0; }
+summary { cursor: pointer; font-weight: 600; }
+details pre { margin-top: 10px; }
+
+.ask { display: flex; gap: 8px; flex-wrap: wrap; }
+input[type="text"], input[type="number"] {
+  flex: 1 1 220px; min-width: 0; font: 400 15px/1.2 var(--body); padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--surface); color: var(--fg);
+}
+.btn { font: 600 14px/1 var(--body); padding: 11px 16px; border-radius: 8px; border: 0; background: var(--accent); color: var(--accent-fg); cursor: pointer; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font: 500 13px/1 var(--body); padding: 7px 10px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+.answer { display: grid; gap: 12px; }
+.answer h3 { font: 800 16px/1.3 var(--display); margin: 0 0 6px; }
+.note { color: var(--muted); font-size: 13px; margin: 0; }
+
+.calc { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.calc label { display: grid; gap: 6px; font-size: 13px; color: var(--muted); }
+.calc input { flex: none; width: 100%; font-family: var(--mono); }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td, th { padding: 9px 4px; border-top: 1px solid var(--line); text-align: left; }
+td.num { text-align: right; font: 600 16px/1 var(--mono); }
+.big { font: 800 28px/1.1 var(--display); color: var(--accent); }
+
+ul.check { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+ul.check label { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+ul.check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--ok); flex: none; }
+.links a { color: var(--accent); overflow-wrap: anywhere; }
+.warn { background: var(--accent-soft); border-radius: 10px; padding: 12px 14px; font-size: 14px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <span class="rec">ClipBot · onderzoek <span id="bijgewerkt"></span></span>
+    <h1>Geld verdienen met GTA-clips</h1>
+    <p class="sub">Van nul tot uitbetaling: waar je campagnes vindt, hoe je de bronvideo haalt, hoe je knipt, post en betaald krijgt.</p>
+    <p class="formula">verdiensten = <b>views ÷ 1.000 × CPM</b> − 10% platformkosten</p>
+  </header>
+
+  <nav role="tablist" aria-label="Onderdelen">
+    <button role="tab" data-tab="stappen" aria-selected="true">Stappenplan</button>
+    <button role="tab" data-tab="vraag" aria-selected="false">Vraag stellen</button>
+    <button role="tab" data-tab="kennis" aria-selected="false">Alle kennis</button>
+    <button role="tab" data-tab="calc" aria-selected="false">Calculator</button>
+    <button role="tab" data-tab="check" aria-selected="false">Dagelijks</button>
+  </nav>
+
+  <section id="tab-stappen">
+    <div class="panel" style="display:grid;gap:10px">
+      <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline">
+        <h2>Stappenplan A–Z</h2><span class="progress" id="voortgang"></span>
+      </div>
+      <div class="bar"><span id="balk"></span></div>
+      <ol class="steps" id="stappen"></ol>
+    </div>
+    <p class="warn">Gebruik alleen content van streamers die het toestaan via een campagne. Een campagne waarvoor je zelf moet betalen is oplichting.</p>
+  </section>
+
+  <section id="tab-vraag" hidden>
+    <h2>Stel je vraag</h2>
+    <form class="ask" id="vraagform">
+      <input type="text" id="vraag" placeholder="bijv. hoe download ik een Twitch VOD?" autocomplete="off">
+      <button class="btn" type="submit">Zoek antwoord</button>
+    </form>
+    <div class="chips" id="chips"></div>
+    <div class="answer" id="antwoord"></div>
+  </section>
+
+  <section id="tab-kennis" hidden>
+    <h2>Alle kennis</h2>
+    <div class="panel" id="kennislijst"></div>
+    <div class="panel links"><h3 style="margin:0 0 8px;font:800 16px var(--display)">Bronnen</h3><ul id="bronnen" style="margin:0;padding-left:18px"></ul></div>
+  </section>
+
+  <section id="tab-calc" hidden>
+    <h2>Verdien-calculator</h2>
+    <div class="panel" style="display:grid;gap:14px">
+      <div class="calc">
+        <label for="c-views">Views per clip<input type="number" id="c-views" value="5000" min="0" step="500"></label>
+        <label for="c-clips">Clips per dag<input type="number" id="c-clips" value="3" min="0" step="1"></label>
+        <label for="c-cpm">$ per 1.000 views (CPM)<input type="number" id="c-cpm" value="1.5" min="0" step="0.1"></label>
+      </div>
+      <table><tbody id="c-uit"></tbody></table>
+      <div class="calc">
+        <label for="c-doel">Netto doel per maand ($)<input type="number" id="c-doel" value="500" min="0" step="50"></label>
+        <div><div class="note">Benodigde views per maand</div><div class="big" id="c-nodig"></div></div>
+      </div>
+      <p class="note">Voorbeeldwaarden. Caps per clip, campagnebudget en afgewezen clips verlagen het echte bedrag.</p>
+    </div>
+  </section>
+
+  <section id="tab-check" hidden>
+    <h2>Dagelijkse checklist</h2>
+    <div class="panel"><ul class="check" id="checklist"></ul></div>
+    <button class="chip" id="reset" type="button" style="justify-self:start">Checklist leegmaken</button>
+  </section>
+</div>
+
+<script>
+const DATA = {"bijgewerkt": "november 2026", "onderwerpen": {"wat_is_clipping": {"titel": "Wat is clipping en hoe verdien je ermee?", "trefwoorden": ["wat", "clipping", "clippen", "uitleg", "hoe werkt", "begin", "verdienen", "geld"], "tekst": "Clipping = je knipt de beste momenten uit lange video's of livestreams van een\ncreator (bijv. een GTA RP-streamer) en post die als korte video's (Shorts,\nTikTok, Reels, X).\n\nJe verdient NIET via het TikTok Creativity Program of YouTube-advertenties,\nmaar via CLIPPING-CAMPAGNES:\n  1. Een streamer/merk zet een budget klaar op een clipping-platform\n     (bijv. Whop Content Rewards of Vyro).\n  2. Jij maakt clips volgens hun regels en post ze op JE EIGEN accounts.\n  3. Je dient de link van je gepubliceerde clip in op het platform.\n  4. Het platform telt je views en betaalt je per 1.000 views (CPM)\n     uit het campagnebudget.\n\nWaarom betalen ze? Jouw clips = gratis reclame/bereik voor de streamer.\nDe streamer GEEFT TOESTEMMING om zijn content te gebruiken. Dat is het\ncruciale verschil met zomaar andermans video's reposten."}, "platformen": {"titel": "Op welke sites vind je betaalde clipping-campagnes?", "trefwoorden": ["site", "sites", "platform", "platformen", "whop", "vyro", "waar", "aanmelden", "campagne", "content rewards", "clipping.net", "clipaffiliates"], "tekst": "1. WHOP CONTENT REWARDS  (whop.com -> 'Content Rewards')\n   - Grootste marktplaats. Gratis aanmelden, meestal geen volger-eis.\n   - Tarieven ca. $0,20 - $6 per 1.000 views; mediaan rond $1 - $1,50.\n   - 10% platformkosten op CPM-uitbetalingen.\n   - Er staan regelmatig GTA RP-campagnes (bijv. NoPixel-streamers,\n     ca. $1,50 per 1.000 views in nov. 2026).\n\n2. VYRO  (vyro.com, platform van MrBeast)\n   - Je post op je eigen accounts en dient de URL in; views worden\n     cross-platform geteld.\n   - Gerapporteerd: ca. $1,50 - $3 per 1.000 views, vaak een max per post\n     en een minimum aantal views voor uitbetaling.\n\n3. Andere (kleiner, minder onafhankelijk gecontroleerd):\n   Clipping.net, ClipAffiliates, en Discord-servers van streamers zelf\n   (veel streamers hebben een #clippers-kanaal met eigen regels).\n\n!! SCAM-REGEL: een 'campagne' waarvoor JIJ moet betalen om mee te doen\n   is altijd oplichting. Echte campagnes zijn gratis."}, "gta_campagnes": {"titel": "GTA-clipping specifiek", "trefwoorden": ["gta", "rp", "roleplay", "nopixel", "gta 6", "gta vi", "gta5", "streamer", "fivem"], "tekst": "- GTA RP (FiveM-servers zoals NoPixel) is een van de populairste niches:\n  lange streams vol grappige, chaotische momenten = veel clipbare content.\n- GTA 6 zorgt voor een enorme toestroom van content en campagnes.\n- Zoek op Whop Content Rewards / Vyro op 'GTA', 'RP' of de naam van een\n  streamer. Check ook de Discord van GTA RP-streamers.\n- Typische regels bij GTA RP-campagnes:\n    * Noem/tag de streamer (handle in beeld of in de caption).\n    * Geen drama-baiting of misleidende titels.\n    * Alleen content van die specifieke streamer.\n- Wat goed werkt: politie-achtervolgingen, absurde dialogen, fails,\n  plot twists, reacties van de streamer, 'storytime'-compilaties.\n- Realiteit: de grote verdieners in GTA RP zijn de streamers zelf.\n  Als clipper verdien je mee op hun bereik - het is volume-werk."}, "content_halen": {"titel": "Hoe en waar haal je de content (bronvideo's)?", "trefwoorden": ["kopieren", "kopiëren", "plakken", "downloaden", "download", "content", "bron", "vod", "twitch", "kick", "yt-dlp", "halen", "video"], "tekst": "REGEL 1: haal alleen content van creators die het TOESTAAN (= de campagne).\nLees in de campagne-brief welke bron je mag gebruiken.\n\nBronnen, van makkelijk naar technisch:\n a) Campagne-materiaal: veel campagnes geven een Google Drive / Dropbox\n    link met ruwe footage. Gewoon downloaden.\n b) Twitch-clips: op twitch.tv -> kanaal -> 'Clips'. Max 60 sec per clip.\n    Je kunt ook zelf een clip maken tijdens een live stream (clip-knop).\n c) Twitch/Kick VOD's (hele uitzendingen): voor langere fragmenten.\n    Twitch-VOD's blijven beperkt beschikbaar (vaak 14-60 dagen).\n d) Download-tool: yt-dlp (gratis, open source, commandline):\n        yt-dlp \"https://www.twitch.tv/videos/<id>\" -o \"vod.mp4\"\n        yt-dlp \"https://kick.com/video/<uuid>\" -o \"vod.mp4\"\n    Alleen een stuk downloaden (bespaart tijd):\n        yt-dlp --download-sections \"*01:23:00-01:25:30\" \"<url>\"\n    Grafisch alternatief: 4K Video Downloader, TwitchLeecher.\n e) YouTube-video's van de streamer: zelfde yt-dlp-aanpak, maar ALLEEN\n    als de campagne YouTube-content expliciet toestaat.\n\nNIET doen: willekeurige virale video's van anderen downloaden en\nherposten. Dat is auteursrechtinbreuk, je account wordt gestraft en je\nkrijgt er via campagnes niets voor betaald."}, "tools": {"titel": "Welke tools heb je nodig om te knippen en te bewerken?", "trefwoorden": ["tool", "tools", "capcut", "opus", "opus clip", "editen", "bewerken", "knippen", "ondertitels", "captions", "submagic", "software", "app"], "tekst": "GRATIS STARTERSPAKKET:\n - CapCut (desktop/mobiel): beste gratis editor. Knippen, 9:16 formaat,\n   automatische ondertitels, zoom-effecten.\n - yt-dlp: bronvideo's downloaden (zie 'content halen').\n - DaVinci Resolve (gratis, desktop) als je meer controle wilt.\n\nAI-TOOLS (sneller, betaald, ca. $15-30/maand):\n - Opus Clip: zoekt automatisch de beste momenten in een VOD.\n   (Twitch: alleen VOD's na de uitzending.)\n - ClipSpeedAI, Vizard, Klap, Ssemble: alternatieven, sommige ook voor\n   live Twitch/Kick.\n - Submagic: opvallende, geanimeerde ondertitels.\n\nBEWEZEN WORKFLOW:\n  AI-clipper (moment vinden) -> CapCut/Submagic (afwerken & ondertitels)\n  -> posten -> link indienen.\nTip: begin gratis met CapCut; koop pas AI-tools als je verdient."}, "accounts": {"titel": "Accounts opzetten (TikTok, YouTube Shorts, Instagram, X)", "trefwoorden": ["account", "accounts", "tiktok", "youtube", "shorts", "instagram", "reels", "x", "twitter", "kanaal", "profiel", "posten"], "tekst": "- Maak per niche een apart account, bijv. 'GTA RP Moments NL' - zo\n  begrijpt het algoritme meteen wie je doelgroep is.\n- Post op meerdere platforms tegelijk: TikTok, YouTube Shorts,\n  Instagram Reels (en evt. X). Eén clip = meerdere kansen op views.\n- Check per campagne WELKE platforms meetellen. Niet elke campagne\n  accepteert elk platform; YouTube-clips betalen soms iets meer.\n- Warm een nieuw account op: eerst een paar dagen normaal scrollen en\n  liken in je niche voordat je veel post.\n- Zet je accounts op 'openbaar' en (bij TikTok/Instagram) op een\n  creator/zakelijk account zodat je statistieken kunt zien.\n- Gebruik NOOIT gekochte volgers/views: dit wordt gedetecteerd en je\n  wordt uitgesloten.\n- Let op YouTube: een kanaal met alleen andermans clips komt meestal\n  NIET in aanmerking voor het YouTube Partner Program (reused content).\n  Je verdiensten komen dan dus van de campagne, niet van YouTube."}, "goede_clip": {"titel": "Hoe maak je een clip die views krijgt?", "trefwoorden": ["viraal", "views", "goede clip", "hook", "tips", "algoritme", "meer views", "lengte", "format", "ondertiteling"], "tekst": "1. HOOK in de eerste 1-2 seconden: begin midden in de actie, of zet een\n   prikkelende tekst bovenin ('Hij had dit NOOIT moeten zeggen...').\n2. Formaat 9:16 (verticaal), 1080x1920. Gameplay boven/midden,\n   evt. facecam van de streamer erboven.\n3. Lengte: 15-60 seconden. Snij alle stiltes en 'dode' momenten eruit.\n4. Grote, duidelijke ondertitels (veel mensen kijken zonder geluid).\n5. Eén verhaal/moment per clip. Duidelijk begin, climax, einde.\n6. Titel/caption: kort, nieuwsgierig makend, met de verplichte tag van de\n   streamer + relevante hashtags (#gtarp #gta #nopixel ...).\n7. Volume & consistentie: 2-5 clips per dag per account is normaal.\n8. Kijk welke clips het goed doen en maak er meer van in die stijl.\n9. Post op momenten dat je doelgroep online is (avond/weekend)."}, "regels_afwijzing": {"titel": "Waarom worden clips afgewezen? (en hoe voorkom je dat)", "trefwoorden": ["afgewezen", "rejected", "afwijzing", "regels", "ban", "verbannen", "fraud", "bot", "nep views", "niet betaald", "geweigerd"], "tekst": "Veelvoorkomende redenen:\n - Regels uit de campagne-brief niet gevolgd (verkeerde streamer, geen\n   tag/handle, verboden onderwerp, te kort/lang).\n - Dezelfde edit in meerdere campagnes ingediend (hergebruikte edit).\n - Collab-posts zonder toestemming.\n - Verdacht viewpatroon (gekochte views, bots, view-farms,\n   engagement-groepen). Gevolg: afwijzing, uitsluiting en mogelijk\n   verrekening met eerdere uitbetalingen.\n - Clip gepost vóór je je aanmeldde of buiten de campagneperiode.\n - Verkeerd land/regio als de campagne regio-eisen heeft.\n - Budget van de campagne is op: dan worden nieuwe views niet betaald.\n\nVoorkomen: lees de HELE brief, maak per campagne een nieuwe edit,\ngebruik alleen echte groei, dien in zodra je post."}, "uitbetaling": {"titel": "Uitbetaling, belasting en Nederland", "trefwoorden": ["uitbetaling", "betaling", "uitbetalen", "paypal", "bank", "iban", "crypto", "kyc", "belasting", "kvk", "nederland", "leeftijd", "18"], "tekst": "WHOP:\n - Uitbetaling naar bankrekening, mobiele wallet of crypto in 200+ landen.\n - Je moet 18+ zijn en je identiteit verifiëren (KYC via Stripe:\n   ID-bewijs + soms selfie).\n - Standaard uitbetaling tot ca. 5 werkdagen; instant opties sneller\n   (tegen een fee).\n - Buiten de VS: je bankrekening moet de valuta van je geregistreerde\n   land accepteren (voor NL: euro-IBAN).\n - Na goedkeuring van een clip staat het geld eerst even 'on hold'.\nVYRO: uitbetaling via het dashboard; check daar minimumbedrag en methode.\n\nNEDERLAND & BELASTING (geen belastingadvies!):\n - Inkomsten uit clipping zijn belastbaar: 'resultaat uit overige\n   werkzaamheden' of, als je het structureel/zakelijk doet,\n   winst uit onderneming (dan KvK-inschrijving en mogelijk btw).\n - Houd een overzicht bij van alle uitbetalingen en kosten (tools).\n - Twijfel? Bel de Belastingtelefoon of vraag een boekhouder.\n - Onder 18? Dan kun je vaak niet zelf uitbetaald worden - laat een\n   ouder meekijken/het account beheren."}, "verwachtingen": {"titel": "Hoeveel kun je realistisch verdienen?", "trefwoorden": ["hoeveel", "verdien", "verdienen", "inkomen", "realistisch", "per maand", "rijk", "salaris", "geld"], "tekst": "Rekensom: verdiensten = (views / 1.000) x CPM - 10% platformkosten.\n\nVoorbeelden bij $1,50 per 1.000 views:\n   10.000 views   ->  ca. $13,50\n  100.000 views   ->  ca. $135\n1.000.000 views   ->  ca. $1.350\n\nRealiteit:\n - De meeste beginners verdienen de eerste weken weinig tot niets.\n - Het is VOLUME-werk: veel clips, veel accounts, veel testen.\n - Verhalen over '$10.000 per week' komen vaak van sites die tools of\n   cursussen verkopen. Wees kritisch.\n - Er gelden vaak caps per clip en het budget kan op raken.\nGebruik in de bot optie 'calculator' om je eigen scenario te rekenen."}}, "stappenplan": [["Begrijp het model", "Je wordt betaald door streamers/merken via clipping-campagnes, per 1.000 views. Niet door TikTok of YouTube zelf."], ["Check de basis", "Ben je 18+ (nodig voor uitbetaling/KYC)? Heb je een euro-bankrekening, een pc of goede telefoon, en 1-3 uur per dag?"], ["Maak je accounts aan", "Eén niche-account (bijv. 'GTA RP Moments') op TikTok, YouTube Shorts en Instagram. Openbaar + creator-account. Een paar dagen opwarmen in de niche."], ["Meld je aan op de platforms", "Maak een gratis account op Whop (Content Rewards) en Vyro. Verifieer je identiteit en koppel je uitbetaalmethode alvast."], ["Kies een campagne", "Zoek op 'GTA' / 'RP' / streamernaam. Kijk naar: CPM-tarief, resterend budget, max per clip, toegestane platforms. Kies er 1-2 om mee te beginnen."], ["Lees de brief VOLLEDIG", "Welke bron mag je gebruiken? Moet de handle in beeld? Welke hashtags? Wat is verboden? Schrijf de regels op."], ["Haal de bronvideo", "Campagne-Drive, Twitch-clips, of de VOD via yt-dlp (yt-dlp --download-sections \"*start-eind\" <url>). Alleen toegestane content."], ["Vind de beste momenten", "Kijk de VOD op 1,5-2x snelheid of gebruik een AI-clipper (Opus Clip e.d.). Noteer tijdstempels van grappige/spannende stukken."], ["Edit de clip", "CapCut: 9:16, 15-60 sec, sterke hook in de eerste 2 sec, stiltes eruit, grote ondertitels, handle van de streamer in beeld."], ["Post op je accounts", "Pakkende caption + verplichte tag + hashtags. Post op alle toegestane platforms."], ["Dien de link in", "Plak de URL van je gepubliceerde clip in de campagne op Whop/Vyro. Doe dit direct na het posten."], ["Volg je views en uitbetaling", "Het platform telt je views; na goedkeuring komt het geld in je saldo. Opnemen naar je bank zodra het vrijgegeven is."], ["Analyseer en verbeter", "Welke clips scoorden? Welke hooks? Maak meer van wat werkt, schrap wat niet werkt."], ["Opschalen", "Meer clips per dag, meer campagnes, evt. AI-tools of een tweede account. Houd je administratie bij voor de belasting."]], "checklist": ["Nieuwe/actieve campagnes gecheckt (budget nog niet op?)", "Nieuwe VOD's/streams van mijn streamer(s) bekeken", "Minimaal 2-5 clips gemaakt", "Elke clip: hook, 9:16, ondertitels, handle/tag in beeld", "Gepost op alle toegestane platforms", "Alle links ingediend op Whop/Vyro", "Statistieken van gisteren bekeken en genoteerd", "Inkomsten/kosten bijgewerkt in mijn administratie"], "bronnen": ["https://docs.whop.com/manage-your-business/growth-marketing/content-rewards", "https://docs.whop.com/manage-your-business/manage-payouts/payout-methods", "https://www.opus.pro/blog/whop-content-rewards", "https://www.opus.pro/blog/vyro-vs-whop", "https://contentrewards.com/articles/gta-6-clipping", "https://www.clipspeed.ai/blog/gta-6-clipping.html", "https://findclout.com/blog/why-clips-get-rejected", "https://findclout.com/blog/youtube-reused-content-policy-clipping", "https://autoclip.dev/blog/kick-vod-download-and-clip-workflow", "https://www.ssemble.com/blog/how-to-clip-twitch-streams-2026"], "kosten": 0.1};
+const $ = (s) => document.querySelector(s);
+const opslag = {
+  lees(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  schrijf(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const el = (tag, props = {}, ...kids) => { const n = Object.assign(document.createElement(tag), props); n.append(...kids); return n; };
+
+$("#bijgewerkt").textContent = DATA.bijgewerkt;
+
+// Tabs
+document.querySelectorAll("nav button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll("nav button").forEach((x) => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll("section[id^=tab-]").forEach((s) => { s.hidden = s.id !== "tab-" + b.dataset.tab; });
+}));
+
+// Stappenplan
+const klaar = new Set(opslag.lees("clipbot-stappen", []));
+function tekenStappen() {
+  const ol = $("#stappen"); ol.replaceChildren();
+  DATA.stappenplan.forEach(([titel, uitleg], i) => {
+    const letter = String.fromCharCode(65 + i);
+    const knop = el("button", { className: "letter", type: "button", textContent: letter,
+      ariaLabel: `Stap ${letter} afvinken` });
+    knop.addEventListener("click", () => { klaar.has(i) ? klaar.delete(i) : klaar.add(i); opslag.schrijf("clipbot-stappen", [...klaar]); tekenStappen(); });
+    ol.append(el("li", { className: klaar.has(i) ? "done" : "" }, knop,
+      el("div", {}, el("p", { className: "stitle", textContent: titel }), el("p", { className: "sbody", textContent: uitleg }))));
+  });
+  const n = DATA.stappenplan.length;
+  $("#voortgang").textContent = `${klaar.size}/${n} klaar`;
+  $("#balk").style.width = (klaar.size / n * 100) + "%";
+}
+tekenStappen();
+
+// Zoeken (zelfde logica als de Python-bot)
+const norm = (t) => t.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
+function zoek(vraag, max = 2) {
+  const v = norm(vraag); const woorden = new Set(v.match(/[a-z0-9\-]+/g) || []);
+  const keys = Object.keys(DATA.onderwerpen);
+  return keys.map((k) => {
+    let s = 0;
+    for (let t of DATA.onderwerpen[k].trefwoorden) {
+      t = norm(t);
+      if (t.includes(" ")) s += v.includes(t) ? 3 : 0;
+      else if (woorden.has(t)) s += 2;
+      else if (t.length > 4 && v.includes(t)) s += 1;
+    }
+    return [s, k];
+  }).filter(([s]) => s > 0).sort((a, b) => b[0] - a[0] || keys.indexOf(a[1]) - keys.indexOf(b[1]))
+    .slice(0, max).map(([, k]) => DATA.onderwerpen[k]);
+}
+function toonAntwoord(vraag) {
+  const doel = $("#antwoord"); doel.replaceChildren();
+  const res = zoek(vraag);
+  if (!res.length) {
+    doel.append(el("p", { className: "note", textContent: "Geen passend antwoord gevonden. Probeer woorden als: whop, vyro, gta, downloaden, capcut, accounts, afgewezen, uitbetaling, belasting." }));
+    return;
+  }
+  res.forEach((o) => doel.append(el("div", { className: "panel" }, el("h3", { textContent: o.titel }), el("pre", { textContent: o.tekst }))));
+}
+$("#vraagform").addEventListener("submit", (e) => { e.preventDefault(); toonAntwoord($("#vraag").value); });
+["Op welke site meld ik me aan?", "Hoe download ik een Twitch VOD?", "Welke tools heb ik nodig?", "Waarom is mijn clip afgewezen?", "Hoe krijg ik uitbetaald in Nederland?", "Hoeveel kan ik verdienen?"]
+  .forEach((q) => { const c = el("button", { className: "chip", type: "button", textContent: q });
+    c.addEventListener("click", () => { $("#vraag").value = q; toonAntwoord(q); }); $("#chips").append(c); });
+$("#vraag").value = "Hoe download ik een Twitch VOD?"; toonAntwoord($("#vraag").value);
+
+// Alle kennis
+Object.values(DATA.onderwerpen).forEach((o) => $("#kennislijst").append(
+  el("details", {}, el("summary", { textContent: o.titel }), el("pre", { textContent: o.tekst }))));
+DATA.bronnen.forEach((b) => $("#bronnen").append(el("li", {}, el("a", { href: b, target: "_blank", rel: "noopener", textContent: b.replace(/^https:\/\//, "") }))));
+
+// Calculator
+const geld = (x) => "$" + x.toLocaleString("nl-NL", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+function reken() {
+  const v = +$("#c-views").value || 0, c = +$("#c-clips").value || 0, cpm = +$("#c-cpm").value || 0, doel = +$("#c-doel").value || 0;
+  const netto = (views) => views / 1000 * cpm * (1 - DATA.kosten);
+  const tb = $("#c-uit"); tb.replaceChildren();
+  [["Per dag", 1], ["Per week", 7], ["Per maand", 30]].forEach(([l, d]) =>
+    tb.append(el("tr", {}, el("td", { textContent: l }), el("td", { className: "num", textContent: geld(netto(v * c * d)) }))));
+  $("#c-nodig").textContent = cpm > 0 ? Math.round(doel / (cpm * (1 - DATA.kosten)) * 1000).toLocaleString("nl-NL") : "–";
+}
+document.querySelectorAll(".calc input").forEach((i) => i.addEventListener("input", reken)); reken();
+
+// Checklist (per dag)
+const vandaag = new Date().toISOString().slice(0, 10);
+let vinkjes = opslag.lees("clipbot-check", {}); if (vinkjes.dag !== vandaag) vinkjes = { dag: vandaag, aan: [] };
+function tekenCheck() {
+  const ul = $("#checklist"); ul.replaceChildren();
+  DATA.checklist.forEach((t, i) => {
+    const cb = el("input", { type: "checkbox", id: "chk-" + i, checked: vinkjes.aan.includes(i) });
+    cb.addEventListener("change", () => { vinkjes.aan = cb.checked ? [...vinkjes.aan, i] : vinkjes.aan.filter((x) => x !== i); opslag.schrijf("clipbot-check", vinkjes); });
+    ul.append(el("li", {}, el("label", { htmlFor: "chk-" + i }, cb, el("span", { textContent: t }))));
+  });
+}
+$("#reset").addEventListener("click", () => { vinkjes = { dag: vandaag, aan: [] }; opslag.schrijf("clipbot-check", vinkjes); tekenCheck(); });
+tekenCheck();
+</script>
