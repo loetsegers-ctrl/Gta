@@ -20,6 +20,7 @@ def bouw(pad: Path = UITVOER) -> Path:
         "checklist": kennis.DAGELIJKSE_CHECKLIST,
         "bronnen": kennis.BRONNEN,
         "kosten": PLATFORMKOSTEN,
+        "hooks": kennis.HOOK_SJABLONEN,
     }
     # '</' escapen zodat tekst nooit de script-tag kan sluiten.
     blob = json.dumps(data, ensure_ascii=False).replace("</", "<\\/")

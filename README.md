@@ -12,6 +12,11 @@ uitbetaling door TikTok of YouTube zelf.
   belasting in Nederland.
 - **Verdien-calculator**: views × CPM − 10% platformkosten, plus het aantal views
   dat je nodig hebt voor je doelbedrag.
+- **Campagne-checker**: score op basis van CPM, resterend budget, goedkeuring en
+  concurrentie, met waarschuwingen (klein budget, cap, laag tarief).
+- **Hook- & caption-generator** voor je clips.
+- **GTA 6-plan**: GTA 6 komt uit op 19 november 2026; de bot legt uit hoe je daarop inspeelt.
+- **Scams herkennen**.
 - **Dagelijkse checklist**.
 - **AI-chat met Claude** (optioneel), met de kennisbank als basis.
 
@@ -24,6 +29,8 @@ python -m clipbot --stappenplan
 python -m clipbot --vraag "hoe download ik een twitch vod?"
 python -m clipbot --calc 5000 3 1.5     # views/clip, clips/dag, $ per 1000 views
 python -m clipbot --checklist
+python -m clipbot --hooks "Lysium"      # hook- en caption-ideeën
+python -m clipbot --campagne 2 8000 50 65   # CPM, budget, clippers, goedkeuring%
 ```
 
 ### AI-modus (Claude)

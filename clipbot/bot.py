@@ -100,6 +100,49 @@ def calculator_tekst(views_per_clip: float, clips_per_dag: float, cpm: float) ->
     return "\n".join(regels)
 
 
+# ---------------------------------------------------------------- campagne-checker
+
+def campagne_score(cpm: float, budget: float, clippers: int, goedkeuring: float = 50.0) -> float:
+    """Vergelijkingsscore: CPM x resterend budget x goedkeuring% / aantal clippers."""
+    if min(cpm, budget, goedkeuring) < 0 or clippers < 0:
+        raise ValueError("waarden moeten positief zijn")
+    return round(cpm * budget * (goedkeuring / 100) / max(clippers, 1), 2)
+
+
+def campagne_advies(cpm: float, budget: float, clippers: int, goedkeuring: float = 50.0,
+                    cap: float | None = None, verwachte_views: float = 10_000) -> str:
+    score = campagne_score(cpm, budget, clippers, goedkeuring)
+    regels = [f"Score: {score:,.2f}  (hoger = beter; vergelijk campagnes onderling)"]
+    if budget < 500:
+        regels.append("- Let op: klein resterend budget; je views worden mogelijk niet meer betaald.")
+    if goedkeuring < 30:
+        regels.append("- Lage goedkeuring: lees de regels extra goed of kies een andere campagne.")
+    if cpm < 0.75:
+        regels.append("- Laag tarief (mediaan is ca. $1,09 per 1.000 views).")
+    per_clip = bereken_verdiensten(verwachte_views, cpm)
+    if cap is not None and per_clip > cap:
+        regels.append(f"- Cap bereikt: bij {verwachte_views:,.0f} views krijg je max ${cap:,.2f} per clip.")
+        per_clip = cap
+    regels.append(f"Verwacht per clip bij {verwachte_views:,.0f} views: ca. ${per_clip:,.2f}")
+    if len(regels) == 2:
+        regels.insert(1, "- Ziet er gezond uit.")
+    return "\n".join(regels)
+
+
+# ---------------------------------------------------------------- hooks
+
+def hooks_en_caption(streamer: str, platform: str = "Twitch", aantal: int = 5) -> str:
+    streamer = streamer.strip() or "deze streamer"
+    tag = re.sub(r"[^a-z0-9]", "", _normaliseer(streamer)) or "streamer"
+    hooks = [h.format(streamer=streamer) for h in kennis.HOOK_SJABLONEN[:aantal]]
+    caption = kennis.CAPTION_SJABLOON.format(hook=hooks[0], streamer=streamer.replace(" ", ""),
+                                             platform=platform, streamer_tag=tag)
+    return ("HOOK-IDEEËN (tekst bovenin je clip):\n"
+            + "\n".join(f"  {i}. {h}" for i, h in enumerate(hooks, 1))
+            + "\n\nVOORBEELD-CAPTION:\n" + caption
+            + "\n\nCheck altijd welke tag/hashtags de campagne verplicht stelt.")
+
+
 # ---------------------------------------------------------------- weergave
 
 def stappenplan_tekst() -> str:
@@ -191,24 +234,31 @@ MENU = """
  2. Wat is clipping / hoe werkt het?
  3. Op welke sites vind ik campagnes?
  4. GTA-clipping specifiek
- 5. Hoe haal/download ik de content?
- 6. Tools om te knippen en bewerken
- 7. Accounts opzetten
- 8. Hoe maak ik een clip die viraal gaat?
- 9. Waarom worden clips afgewezen?
-10. Uitbetaling, belasting & Nederland
-11. Verdien-calculator
-12. Dagelijkse checklist
-13. Stel een vraag (offline)
-14. AI-chat met Claude
-15. Bronnen
+ 5. GTA 6: waarom NU starten?
+ 6. Hoe haal/download ik de content?
+ 7. Tools om te knippen en bewerken
+ 8. Accounts opzetten
+ 9. Hoe maak ik een clip die viraal gaat?
+10. Hoe kies ik een goede campagne?
+11. Waarom worden clips afgewezen?
+12. Scams herkennen
+13. Uitbetaling, belasting & Nederland
+14. Hoeveel kan ik verdienen?
+15. Verdien-calculator
+16. Campagne-checker
+17. Hook- & caption-generator
+18. Dagelijkse checklist
+19. Stel een vraag (offline)
+20. AI-chat met Claude
+21. Bronnen
  0. Stoppen
 """
 
 MENU_ONDERWERPEN = {
-    "2": "wat_is_clipping", "3": "platformen", "4": "gta_campagnes",
-    "5": "content_halen", "6": "tools", "7": "accounts", "8": "goede_clip",
-    "9": "regels_afwijzing", "10": "uitbetaling",
+    "2": "wat_is_clipping", "3": "platformen", "4": "gta_campagnes", "5": "gta6_kans",
+    "6": "content_halen", "7": "tools", "8": "accounts", "9": "goede_clip",
+    "10": "campagne_kiezen", "11": "regels_afwijzing", "12": "scams",
+    "13": "uitbetaling", "14": "verwachtingen",
 }
 
 
@@ -238,20 +288,31 @@ def menu(invoer=input, uitvoer=print) -> None:
         elif keuze in MENU_ONDERWERPEN:
             o = kennis.ONDERWERPEN[MENU_ONDERWERPEN[keuze]]
             uitvoer(f"=== {o['titel']} ===\n{o['tekst']}")
-        elif keuze == "11":
+        elif keuze == "15":
             v = _lees_getal(invoer, "Gemiddeld aantal views per clip", 5000)
             c = _lees_getal(invoer, "Clips per dag", 3)
             cpm = _lees_getal(invoer, "Tarief in $ per 1.000 views", 1.5)
             uitvoer(calculator_tekst(v, c, cpm))
             doel = _lees_getal(invoer, "Netto doelbedrag per maand in $", 500)
             uitvoer(f"Daarvoor heb je ca. {views_nodig(doel, cpm):,} views per maand nodig.")
-        elif keuze == "12":
+        elif keuze == "16":
+            cpm = _lees_getal(invoer, "Tarief in $ per 1.000 views", 1.5)
+            budget = _lees_getal(invoer, "Resterend budget in $", 5000)
+            clippers = int(_lees_getal(invoer, "Aantal clippers dat al meedoet", 100))
+            goed = _lees_getal(invoer, "Goedkeuringspercentage (schatting)", 50)
+            cap = _lees_getal(invoer, "Max uitbetaling per clip in $ (0 = geen)", 0)
+            uitvoer(campagne_advies(cpm, budget, clippers, goed, cap or None))
+        elif keuze == "17":
+            naam = invoer("Naam van de streamer: ")
+            plat = invoer("Platform van de streamer [Twitch]: ").strip() or "Twitch"
+            uitvoer(hooks_en_caption(naam, plat))
+        elif keuze == "18":
             uitvoer(checklist_tekst())
-        elif keuze == "13":
+        elif keuze == "19":
             uitvoer(beantwoord(invoer("Je vraag: ")))
-        elif keuze == "14":
+        elif keuze == "20":
             ai_chat(invoer, uitvoer)
-        elif keuze == "15":
+        elif keuze == "21":
             uitvoer(bronnen_tekst())
         else:
             uitvoer("Onbekende keuze.")
@@ -269,6 +330,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--ai", action="store_true", help="chat met Claude")
     p.add_argument("--calc", nargs=3, type=float, metavar=("VIEWS_PER_CLIP", "CLIPS_PER_DAG", "CPM"),
                    help="reken verdiensten uit")
+    p.add_argument("--hooks", metavar="STREAMER", help="hook- en caption-ideeën voor een streamer")
+    p.add_argument("--campagne", nargs=4, type=float, metavar=("CPM", "BUDGET", "CLIPPERS", "GOEDKEURING"),
+                   help="beoordeel een campagne")
     a = p.parse_args(argv)
     if a.vraag:
         print(beantwoord(a.vraag))
@@ -278,6 +342,11 @@ def main(argv: list[str] | None = None) -> int:
         print(checklist_tekst())
     elif a.calc:
         print(calculator_tekst(*a.calc))
+    elif a.hooks:
+        print(hooks_en_caption(a.hooks))
+    elif a.campagne:
+        cpm, budget, clippers, goed = a.campagne
+        print(campagne_advies(cpm, budget, int(clippers), goed))
     elif a.ai:
         ai_chat()
     else:

@@ -121,6 +121,7 @@ ul.check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(-
     <button role="tab" data-tab="vraag" aria-selected="false">Vraag stellen</button>
     <button role="tab" data-tab="kennis" aria-selected="false">Alle kennis</button>
     <button role="tab" data-tab="calc" aria-selected="false">Calculator</button>
+    <button role="tab" data-tab="tools" aria-selected="false">Campagne &amp; hooks</button>
     <button role="tab" data-tab="check" aria-selected="false">Dagelijks</button>
   </nav>
 
@@ -165,6 +166,33 @@ ul.check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(-
         <div><div class="note">Benodigde views per maand</div><div class="big" id="c-nodig"></div></div>
       </div>
       <p class="note">Voorbeeldwaarden. Caps per clip, campagnebudget en afgewezen clips verlagen het echte bedrag.</p>
+    </div>
+  </section>
+
+  <section id="tab-tools" hidden>
+    <h2>Campagne-checker</h2>
+    <div class="panel" style="display:grid;gap:14px">
+      <div class="calc">
+        <label for="k-cpm">$ per 1.000 views<input type="number" id="k-cpm" value="2" min="0" step="0.1"></label>
+        <label for="k-budget">Resterend budget ($)<input type="number" id="k-budget" value="8000" min="0" step="100"></label>
+        <label for="k-clippers">Clippers die al meedoen<input type="number" id="k-clippers" value="50" min="0" step="1"></label>
+        <label for="k-goed">Goedkeuring (%)<input type="number" id="k-goed" value="65" min="0" max="100" step="5"></label>
+        <label for="k-cap">Max per clip ($, 0 = geen)<input type="number" id="k-cap" value="0" min="0" step="5"></label>
+        <label for="k-views">Verwachte views per clip<input type="number" id="k-views" value="10000" min="0" step="1000"></label>
+      </div>
+      <div><div class="note">Score (hoger = beter, vergelijk campagnes onderling)</div><div class="big" id="k-score"></div></div>
+      <ul id="k-advies" style="margin:0;padding-left:18px"></ul>
+    </div>
+    <h2>Hook- &amp; caption-generator</h2>
+    <div class="panel" style="display:grid;gap:12px">
+      <div class="ask">
+        <input type="text" id="h-streamer" value="Lysium" placeholder="Naam van de streamer" autocomplete="off">
+        <input type="text" id="h-platform" value="Twitch" placeholder="Platform" autocomplete="off" style="flex:0 1 140px">
+      </div>
+      <ol id="h-lijst" style="margin:0;padding-left:22px;display:grid;gap:4px"></ol>
+      <pre id="h-caption" style="background:var(--code-bg);padding:12px;border-radius:8px"></pre>
+      <button class="chip" type="button" id="h-kopie" style="justify-self:start">Kopieer caption</button>
+      <p class="note">Check altijd welke tag en hashtags de campagne verplicht stelt.</p>
     </div>
   </section>
 
@@ -258,6 +286,40 @@ function reken() {
   $("#c-nodig").textContent = cpm > 0 ? Math.round(doel / (cpm * (1 - DATA.kosten)) * 1000).toLocaleString("nl-NL") : "–";
 }
 document.querySelectorAll(".calc input").forEach((i) => i.addEventListener("input", reken)); reken();
+
+// Campagne-checker (zelfde logica als de Python-bot)
+function checker() {
+  const cpm = +$("#k-cpm").value || 0, budget = +$("#k-budget").value || 0, cl = +$("#k-clippers").value || 0,
+        goed = +$("#k-goed").value || 0, cap = +$("#k-cap").value || 0, views = +$("#k-views").value || 0;
+  const score = cpm * budget * (goed / 100) / Math.max(cl, 1);
+  $("#k-score").textContent = score.toLocaleString("nl-NL", { maximumFractionDigits: 2 });
+  const adv = [];
+  if (budget < 500) adv.push("Klein resterend budget: je views worden mogelijk niet meer betaald.");
+  if (goed < 30) adv.push("Lage goedkeuring: lees de regels extra goed of kies een andere campagne.");
+  if (cpm < 0.75) adv.push("Laag tarief (mediaan is ca. $1,09 per 1.000 views).");
+  let perClip = views / 1000 * cpm * (1 - DATA.kosten);
+  if (cap > 0 && perClip > cap) { adv.push(`Cap bereikt: je krijgt max ${geld(cap)} per clip.`); perClip = cap; }
+  if (!adv.length) adv.push("Ziet er gezond uit.");
+  adv.push(`Verwacht per clip: ca. ${geld(perClip)}`);
+  $("#k-advies").replaceChildren(...adv.map((a) => el("li", { textContent: a })));
+}
+document.querySelectorAll("#tab-tools .calc input").forEach((i) => i.addEventListener("input", checker)); checker();
+
+// Hooks
+function hooks() {
+  const s = $("#h-streamer").value.trim() || "deze streamer", plat = $("#h-platform").value.trim() || "Twitch";
+  const tag = norm(s).replace(/[^a-z0-9]/g, "") || "streamer";
+  const lijst = DATA.hooks.map((x) => x.replaceAll("{streamer}", s));
+  $("#h-lijst").replaceChildren(...lijst.map((x) => el("li", { textContent: x })));
+  $("#h-caption").textContent = `${lijst[0]} 🎮\nCredit: @${s.replace(/ /g, "")} (${plat})\n#gta #gtarp #gta6 #${tag} #gaming #fyp`;
+}
+["#h-streamer", "#h-platform"].forEach((id) => $(id).addEventListener("input", hooks)); hooks();
+$("#h-kopie").addEventListener("click", () => {
+  const knop = $("#h-kopie"), tekst = $("#h-caption").textContent;
+  const klaar = () => { knop.textContent = "Gekopieerd"; setTimeout(() => (knop.textContent = "Kopieer caption"), 1500); };
+  const fallback = () => { const r = document.createRange(); r.selectNodeContents($("#h-caption")); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); knop.textContent = "Geselecteerd: kopieer handmatig"; };
+  try { navigator.clipboard.writeText(tekst).then(klaar, fallback); } catch { fallback(); }
+});
 
 // Checklist (per dag)
 const vandaag = new Date().toISOString().slice(0, 10);

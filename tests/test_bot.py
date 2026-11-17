@@ -42,13 +42,15 @@ class TestWeergave(unittest.TestCase):
         self.assertEqual(len(kennis.STAPPENPLAN), 14)
 
     def test_menu_loopt(self):
-        antwoorden = iter(["1", "", "11", "10000", "2", "1.5", "300", "", "13", "tiktok account", "", "0"])
+        antwoorden = iter(["1", "", "15", "10000", "2", "1.5", "300", "", "19", "tiktok account", "", "16", "2", "8000", "50", "65", "100", "", "17", "Lysium", "", "", "0"])
         uit = []
         bot.menu(invoer=lambda _p="": next(antwoorden), uitvoer=uit.append)
         alles = "\n".join(uit)
         self.assertIn("STAPPENPLAN", alles)
         self.assertIn("Per maand", alles)
         self.assertIn("Succes met clippen", alles)
+        self.assertIn("Score:", alles)
+        self.assertIn("HOOK-IDEE", alles)
 
     def test_kennis_tekst(self):
         self.assertIn("Stappenplan A-Z", kennis.volledige_kennis_als_tekst())
@@ -56,3 +58,29 @@ class TestWeergave(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestNieuweFuncties(unittest.TestCase):
+    def test_score_voorbeeld(self):
+        # $2 CPM, 65%, $8000 moet beter scoren dan $4 CPM, 10%, $200 (zelfde aantal clippers)
+        self.assertGreater(bot.campagne_score(2, 8000, 50, 65), bot.campagne_score(4, 200, 50, 10))
+
+    def test_advies_cap(self):
+        t = bot.campagne_advies(2, 8000, 50, 65, cap=5, verwachte_views=100_000)
+        self.assertIn("Cap bereikt", t)
+
+    def test_advies_klein_budget(self):
+        self.assertIn("klein resterend budget", bot.campagne_advies(4, 200, 50, 10))
+
+    def test_hooks(self):
+        t = bot.hooks_en_caption("Lysium")
+        self.assertIn("Lysium had dit NOOIT", t)
+        self.assertIn("#lysium", t)
+
+    def test_gta6_zoeken(self):
+        r = bot.zoek("wanneer komt gta 6 uit?")
+        self.assertEqual(r[0]["titel"], kennis.ONDERWERPEN["gta6_kans"]["titel"])
+
+    def test_scam_zoeken(self):
+        r = bot.zoek("is deze discord cursus een scam?")
+        self.assertEqual(r[0]["titel"], kennis.ONDERWERPEN["scams"]["titel"])

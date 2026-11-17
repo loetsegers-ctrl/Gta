@@ -55,7 +55,7 @@ cruciale verschil met zomaar andermans video's reposten.""",
     },
     "gta_campagnes": {
         "titel": "GTA-clipping specifiek",
-        "trefwoorden": ["gta", "rp", "roleplay", "nopixel", "gta 6", "gta vi", "gta5", "streamer", "fivem"],
+        "trefwoorden": ["gta", "rp", "roleplay", "nopixel", "gta5", "streamer", "fivem", "gta rp"],
         "tekst": """\
 - GTA RP (FiveM-servers zoals NoPixel) is een van de populairste niches:
   lange streams vol grappige, chaotische momenten = veel clipbare content.
@@ -200,6 +200,66 @@ NEDERLAND & BELASTING (geen belastingadvies!):
  - Onder 18? Dan kun je vaak niet zelf uitbetaald worden - laat een
    ouder meekijken/het account beheren.""",
     },
+    "campagne_kiezen": {
+        "titel": "Hoe kies je een campagne die echt uitbetaalt?",
+        "trefwoorden": ["kiezen", "beste campagne", "budget", "cap", "max", "cpm", "tarief", "welke campagne", "goedkeuring", "approval", "minimum"],
+        "tekst": """\
+Kijk naar VIER dingen, in deze volgorde:
+ 1. RESTEREND BUDGET - het belangrijkste. Bijna leeg = je views worden
+    misschien niet meer betaald. Staat het budget er niet bij? Ga uit van
+    'bijna leeg'.
+ 2. GOEDKEURINGSPERCENTAGE - $2 CPM met 65% goedkeuring en $8.000 budget
+    is beter dan $4 CPM met 10% goedkeuring en $200 budget.
+ 3. CPM-TARIEF - mediaan rond $1,09 per 1.000 views (707 campagnes,
+    nov. 2026); de meeste tussen $1 en $5.
+ 4. REGELS - minimum views (soms 10K-100K voordat je iets krijgt),
+    maximum per clip (cap), toegestane platforms, en de looptijd
+    (bij Whop stopt CPM-verdienen 30 dagen na indienen).
+
+Vuistregel: score = CPM x resterend budget / aantal clippers dat al
+meedoet. Een middelmatige CPM met een grote pot wint meestal.
+Gebruik optie 'campagne-checker' in de bot om dit te berekenen.""",
+    },
+    "scams": {
+        "titel": "Scams herkennen en vermijden",
+        "trefwoorden": ["scam", "oplichting", "nep", "discord", "cursus", "betalen", "fee", "dm", "veilig", "legit", "betrouwbaar"],
+        "tekst": """\
+RODE VLAGGEN:
+ - Je moet EERST betalen: 'clipping-cursus', 'onboarding fee',
+   'verificatie-borg', betaalde Discord-tier, crypto 'gas fees'.
+ - Onverwachte DM op Discord met een 'campagne' - ook van een bekende:
+   veel Discord-accounts worden gehackt en gebruikt voor scams.
+ - Nep-'verificatiebots' of 'ik heb je per ongeluk gerapporteerd'-
+   berichten die om je login of 2FA-code vragen.
+ - Trainingen die je leren andermans content zonder toestemming te
+   clippen (auteursrechtrisico, accounts worden gebanned).
+ - Beloftes als '$10.000 per week gegarandeerd'.
+
+VEILIG WERKEN:
+ - Gebruik alleen campagnes die zichtbaar op het platform staan
+   (Whop Content Rewards, Vyro) of in de officiële Discord van de streamer.
+ - Zet 2FA aan op Discord, Whop, TikTok, YouTube en je e-mail.
+ - Geef nooit je wachtwoord of 2FA-code aan iemand.
+ - Beperk DM's van onbekenden op Discord.""",
+    },
+    "gta6_kans": {
+        "titel": "GTA 6: waarom NU starten?",
+        "trefwoorden": ["gta 6", "gta vi", "gta6", "release", "launch", "uitkomst", "komt uit", "timing", "wanneer", "trend"],
+        "tekst": """\
+ - GTA 6 komt uit op donderdag 19 november 2026 (PS5 en Xbox Series X|S;
+   nog geen pc-versie aangekondigd).
+ - Rond de release kijkt iedereen GTA 6: streamers spelen urenlang,
+   en er komen veel clipping-campagnes en zoekverkeer bij.
+ - Plan:
+     * Vóór de release: accounts klaar en opgewarmd, aangemeld op Whop
+       en Vyro, CapCut-sjabloon (9:16, ondertitels) klaar.
+     * Release-week: volg 2-3 grote streamers met een actieve campagne,
+       clip hun eerste reacties, grappige fails en 'eerste keer'-momenten.
+     * Daarna: kies een vaste niche (bijv. één streamer, GTA 6 RP zodra
+       dat er is, of 'GTA 6 fails') en bouw consistent op.
+ - Concurrentie is ook groot: snelheid (binnen enkele uren na de stream
+   posten) en kwaliteit van je hook maken het verschil.""",
+    },
     "verwachtingen": {
         "titel": "Hoeveel kun je realistisch verdienen?",
         "trefwoorden": ["hoeveel", "verdien", "verdienen", "inkomen", "realistisch", "per maand", "rijk", "salaris", "geld"],
@@ -276,6 +336,26 @@ DAGELIJKSE_CHECKLIST = [
     "Inkomsten/kosten bijgewerkt in mijn administratie",
 ]
 
+# Sjablonen voor hooks (tekst bovenin de clip) en captions.
+HOOK_SJABLONEN = [
+    "{streamer} had dit NOOIT moeten doen...",
+    "Wacht tot het einde 😭",
+    "Dit is waarom {streamer} niet mag rijden in GTA",
+    "POV: je bent de politie in GTA RP",
+    "Niemand had dit zien aankomen...",
+    "{streamer} verloor ALLES in 10 seconden",
+    "De meest chaotische achtervolging ooit",
+    "Hij dacht dat niemand het zag...",
+    "Dit gebeurde er in de eerste 5 minuten van GTA 6",
+    "Rate deze escape van 1 tot 10",
+]
+
+CAPTION_SJABLOON = (
+    "{hook} 🎮\n"
+    "Credit: @{streamer} ({platform})\n"
+    "#gta #gtarp #gta6 #{streamer_tag} #gaming #fyp"
+)
+
 BRONNEN = [
     "https://docs.whop.com/manage-your-business/growth-marketing/content-rewards",
     "https://docs.whop.com/manage-your-business/manage-payouts/payout-methods",
@@ -287,6 +367,10 @@ BRONNEN = [
     "https://findclout.com/blog/youtube-reused-content-policy-clipping",
     "https://autoclip.dev/blog/kick-vod-download-and-clip-workflow",
     "https://www.ssemble.com/blog/how-to-clip-twitch-streams-2026",
+    "https://contentrewards.com/articles/clipping-cpm-rates-november-2026",
+    "https://openclip.app/clipping/campaign-budget-and-payout-risk",
+    "https://findclout.com/blog/clipping-discord-scams",
+    "https://www.gtaboom.com/gta-6-release-date-platforms-and-what-is-locked-in-aa48",
 ]
 
 
