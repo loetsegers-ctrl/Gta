@@ -136,7 +136,8 @@ def caption_tekst(hook: str, streamer: str, platform: str) -> str:
 
 
 def maak_clip(bron: str, start: str, eind: str, uit: Path, streamer: str,
-              hook: str | None = None, platform: str = "Twitch") -> tuple[Path, Path]:
+              hook: str | None = None, platform: str = "Twitch",
+              tekst_in_beeld: bool = True) -> tuple[Path, Path]:
     s, e = tijd_naar_sec(start), tijd_naar_sec(eind)
     duur = e - s
     if duur <= 0:
@@ -155,13 +156,15 @@ def maak_clip(bron: str, start: str, eind: str, uit: Path, streamer: str,
             invoer, zoek_start = Path(bron), s
             if not invoer.exists():
                 raise SystemExit(f"Bestand niet gevonden: {invoer}")
-        hook_f = tmp_p / "hook.txt"
-        hook_f.write_text("\n".join(textwrap.wrap(_zonder_emoji(hook), 24)) or " ", encoding="utf-8")
-        credit_f = tmp_p / "credit.txt"
-        credit_f.write_text(f"@{streamer.replace(' ', '')} op {platform}", encoding="utf-8")
+        hook_f = credit_f = None
+        if tekst_in_beeld:
+            hook_f = tmp_p / "hook.txt"
+            hook_f.write_text("\n".join(textwrap.wrap(_zonder_emoji(hook), 24)) or " ", encoding="utf-8")
+            credit_f = tmp_p / "credit.txt"
+            credit_f.write_text(f"@{streamer.replace(' ', '')} op {platform}", encoding="utf-8")
 
         cmd = ["ffmpeg", "-y", "-v", "error", "-ss", f"{zoek_start}", "-t", f"{duur}", "-i", str(invoer),
-               "-filter_complex", ffmpeg_filter(str(hook_f), str(credit_f)), "-map", "[v]"]
+               "-filter_complex", ffmpeg_filter(hook_f and str(hook_f), credit_f and str(credit_f)), "-map", "[v]"]
         if heeft_audio(invoer):
             cmd += ["-map", "0:a:0", "-c:a", "aac", "-b:a", "160k"]
         cmd += ["-c:v", "libx264", "-preset", "medium", "-crf", "20", "-pix_fmt", "yuv420p",
@@ -181,6 +184,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--duur", type=int, default=30, help="lengte bij automatisch zoeken (sec)")
     p.add_argument("--streamer", required=True, help="naam/handle van de streamer")
     p.add_argument("--hook", help="tekst bovenin de clip")
+    p.add_argument("--geen-tekst", action="store_true", help="geen tekst in beeld (caption blijft)")
     p.add_argument("--platform", default="Twitch", help="platform van de streamer")
     p.add_argument("--uit", default="clips/clip.mp4", help="uitvoerbestand")
     a = p.parse_args(argv)
@@ -197,7 +201,8 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Ik knip #1: {a.start} - {a.eind}")
     elif not a.eind:
         raise SystemExit("Geef ook --eind op.")
-    video, txt = maak_clip(a.bron, a.start, a.eind, Path(a.uit), a.streamer, a.hook, a.platform)
+    video, txt = maak_clip(a.bron, a.start, a.eind, Path(a.uit), a.streamer, a.hook, a.platform,
+                           tekst_in_beeld=not a.geen_tekst)
     print(f"Klaar: {video}\nCaption: {txt}")
     return 0
 

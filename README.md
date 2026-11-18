@@ -50,6 +50,8 @@ Vereist ffmpeg (en `yt-dlp` voor links).
 python -m clipbot.maak_clip video.mp4 --start 1:23:05 --eind 1:23:40 --streamer Royalistiq --hook "Roy gaat HELEMAAL los"
 # automatisch het meest enthousiaste moment zoeken (op basis van geluidspieken)
 python -m clipbot.maak_clip video.mp4 --streamer Royalistiq --duur 30
+# zonder tekst in beeld (alleen de caption in clip.txt)
+python -m clipbot.maak_clip video.mp4 --streamer Royalistiq --duur 30 --geen-tekst
 ```
 Dit maakt `clips/clip.mp4` (1080x1920) en `clips/clip.txt` met de caption en een checklist.
 Jij post de clip zelf. Gebruik alleen materiaal waarvoor je toestemming hebt.
