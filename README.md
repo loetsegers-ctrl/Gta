@@ -43,6 +43,17 @@ python -m clipbot --ai
 Gebruikt `claude-opus-5-5` met streaming. Bij een geweigerd verzoek valt de API
 automatisch terug op een ander model (`fallbacks: "default"`).
 
+## Clip maken (9:16 met hook en credit)
+Vereist ffmpeg (en `yt-dlp` voor links).
+```bash
+# zelf start/eind kiezen
+python -m clipbot.maak_clip video.mp4 --start 1:23:05 --eind 1:23:40 --streamer Royalistiq --hook "Roy gaat HELEMAAL los"
+# automatisch het meest enthousiaste moment zoeken (op basis van geluidspieken)
+python -m clipbot.maak_clip video.mp4 --streamer Royalistiq --duur 30
+```
+Dit maakt `clips/clip.mp4` (1080x1920) en `clips/clip.txt` met de caption en een checklist.
+Jij post de clip zelf. Gebruik alleen materiaal waarvoor je toestemming hebt.
+
 ## Webversie (ook op je telefoon)
 ```bash
 python -m clipbot.web                   # bouwt web/clipbot.html uit de kennisbank
